@@ -57,13 +57,14 @@ export function CalendarHeatmap() {
 
   return (
     <>
-      <Card className="border-border/50 bg-card shadow-sm">
-        <CardHeader className="pb-4">
+      <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm relative overflow-hidden transition-colors hover:border-border/80 group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+        <CardHeader className="pb-4 pt-5 px-6 border-b border-border/30 relative z-10">
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
             <CalendarIcon className="w-4 h-4" /> 14-Day History
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 relative z-10">
           <div className="flex flex-wrap gap-2">
             <TooltipProvider delay={100}>
               {days.map((date) => {

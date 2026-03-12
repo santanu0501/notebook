@@ -6,17 +6,22 @@ interface HabitStore {
   habits: Habit[];
   tasks: Task[];
   journalEntries: JournalEntry[];
+  activeView: "dashboard" | "journal";
   
   // Actions
   toggleHabitToday: (habitId: string) => void;
   toggleTask: (taskId: string) => void;
   addJournalEntry: (content: string) => void;
+  addTask: (title: string) => void;
+  addHabit: (name: string) => void;
+  setActiveView: (view: "dashboard" | "journal") => void;
 }
 
 export const useHabitStore = create<HabitStore>((set) => ({
   habits: MOCK_HABITS,
   tasks: MOCK_TASKS,
   journalEntries: MOCK_JOURNAL_ENTRIES,
+  activeView: "dashboard",
 
   toggleHabitToday: (habitId) =>
     set((state) => {
@@ -60,4 +65,23 @@ export const useHabitStore = create<HabitStore>((set) => ({
         ...state.journalEntries,
       ],
     })),
+
+  addTask: (title) =>
+    set((state) => ({
+      tasks: [
+        { id: `t${Date.now()}`, title, completed: false },
+        ...state.tasks,
+      ],
+    })),
+
+  addHabit: (name) =>
+    set((state) => ({
+      habits: [
+        { id: `h${Date.now()}`, name, history: [] },
+        ...state.habits,
+      ],
+    })),
+
+  setActiveView: (view) =>
+    set({ activeView: view }),
 }));

@@ -6,7 +6,6 @@ import { useHabitStore } from "@/store/habitStore";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { CheckSquare, TrendingUp, Target } from "lucide-react";
 
@@ -37,51 +36,57 @@ export function RightPanel() {
   }, [productivityScore]);
 
   return (
-    <aside className="h-full flex flex-col gap-6 bg-background/50 border-l border-border p-6 overflow-y-auto">
+    <aside className="h-full flex flex-col gap-6 bg-background/40 backdrop-blur-md border-l border-border/40 p-6 overflow-y-auto no-scrollbar relative z-20">
       {/* Productivity Score Card */}
-      <Card className="border-border/50 bg-card shadow-sm">
+      <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm relative overflow-hidden group hover:border-border/80 transition-colors">
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
             <TrendingUp className="w-4 h-4" /> Productivity Score
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 relative z-10">
           <div className="flex items-end gap-2">
-            <span className={cn("text-5xl font-bold tracking-tighter", scoreColor)}>
+            <span className={cn("text-6xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br", 
+              productivityScore >= 80 ? "from-green-400 to-emerald-600" :
+              productivityScore >= 50 ? "from-blue-400 to-indigo-600" :
+              productivityScore >= 20 ? "from-yellow-400 to-orange-500" :
+              "from-red-400 to-rose-600"
+            )}>
               {productivityScore}
             </span>
             <span className="text-muted-foreground font-medium pb-1">/ 100</span>
           </div>
           <Progress value={productivityScore} className="h-2" />
           <p className="text-sm text-muted-foreground mt-2">
-            Based on today's completed habits.
+            Based on today&apos;s completed habits.
           </p>
         </CardContent>
       </Card>
 
       {/* Today's Tasks */}
-      <Card className="flex-1 border-border/50 bg-card shadow-sm flex flex-col min-h-[300px]">
-        <CardHeader className="pb-3 border-b border-border/40">
+      <Card className="flex-1 border-border/40 bg-card/60 backdrop-blur-md shadow-sm flex flex-col min-h-[300px]">
+        <CardHeader className="pb-3 border-b border-border/30">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-              <CheckSquare className="w-4 h-4" /> Today's Tasks
+              <CheckSquare className="w-4 h-4" /> Today&apos;s Tasks
             </CardTitle>
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
               {tasks.filter(t => t.completed).length}/{tasks.length}
             </span>
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1">
-          <ScrollArea className="h-full px-4 py-4">
+        <CardContent className="p-0 flex-1 min-h-0">
+          <div className="h-full px-4 py-4 overflow-y-auto no-scrollbar">
             <div className="space-y-3">
               {tasks.map((task) => (
                 <div
                   key={task.id}
                   className={cn(
-                    "flex flex-col gap-2 p-3 rounded-lg border transition-all cursor-pointer group hover:border-primary/50",
+                    "flex flex-col gap-2 p-3.5 rounded-xl border transition-all duration-300 cursor-pointer group/task relative overflow-hidden",
                     task.completed 
-                      ? "bg-muted/30 border-border/40" 
-                      : "bg-background border-border"
+                      ? "bg-muted/20 border-border/30" 
+                      : "bg-background/50 border-border/50 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--primary),0.05)]"
                   )}
                   onClick={() => toggleTask(task.id)}
                 >
@@ -89,41 +94,24 @@ export function RightPanel() {
                     <Checkbox
                       checked={task.completed}
                       onCheckedChange={() => toggleTask(task.id)}
-                      className="mt-0.5"
+                      className="mt-0.5 shrink-0"
                     />
-                    <div className="space-y-1.5 flex-1">
+                    <div className="flex-1 min-w-0">
                       <p
+                        title={task.title}
                         className={cn(
-                          "text-sm font-medium leading-tight transition-all",
+                          "text-sm font-medium leading-tight transition-all truncate",
                           task.completed && "line-through text-muted-foreground"
                         )}
                       >
                         {task.title}
                       </p>
-                      {task.tags && task.tags.length > 0 && (
-                        <div className="flex gap-1.5 flex-wrap mt-1">
-                          {task.tags.map(tag => (
-                            <span 
-                              key={tag} 
-                              className={cn(
-                                "text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm flex items-center gap-1",
-                                tag === 'urgent' ? "bg-red-500/10 text-red-500" :
-                                tag === 'important' ? "bg-orange-500/10 text-orange-500" :
-                                "bg-blue-500/10 text-blue-500"
-                              )}
-                            >
-                              <Target className="w-2.5 h-2.5" />
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </aside>

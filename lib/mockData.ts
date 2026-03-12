@@ -82,6 +82,7 @@ export const MOCK_TASKS: Task[] = [
   { id: "t4", title: "Review AI concepts", completed: false, tags: ["important"] },
   { id: "t5", title: "Plan out revision topics in planner", completed: true, tags: ["urgent"] },
   { id: "t6", title: "Make flashcards for 6 marker biological processes", completed: false, tags: ["important"] },
+  { id: "t7", title: "Read 10 pages of a new book on system design and architecture for web apps", completed: false },
 ];
 
 export const MOCK_JOURNAL_ENTRIES: JournalEntry[] = Array.from({ length: 10 }).map(

@@ -2,16 +2,21 @@
 
 import { useHabitStore } from "@/store/habitStore";
 import { SidebarNav } from "@/components/dashboard/SidebarNav";
-import { HabitCard } from "@/components/dashboard/HabitCard";
+import { ProductivityCalendar } from "@/components/dashboard/ProductivityCalendar";
 import { JournalEditor } from "@/components/dashboard/JournalEditor";
-import { CalendarHeatmap } from "@/components/dashboard/CalendarHeatmap";
+import { TopStreaks } from "@/components/dashboard/TopStreaks";
 import { RightPanel } from "@/components/dashboard/RightPanel";
+import { JournalBook } from "@/components/dashboard/JournalBook";
 
 export default function DashboardPage() {
-  const { habits } = useHabitStore();
+  const { habits, activeView } = useHabitStore();
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans relative selection:bg-primary/30">
+      {/* Ambient background glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[30%] bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
+
       {/* Left Sidebar - Hidden on mobile, collapsible on tablet, fixed on desktop */}
       <div className="hidden md:flex md:w-64 h-full flex-shrink-0">
         <SidebarNav />
@@ -21,36 +26,34 @@ export default function DashboardPage() {
       <main className="flex-1 flex flex-col h-full min-w-0 overflow-y-auto">
         <div className="flex-1 p-6 md:p-8 space-y-8 max-w-5xl mx-auto w-full">
           {/* Header */}
-          <header className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">
-              Good Evening <span className="inline-block animate-wave origin-bottom-right">👋</span>
+          <header className="space-y-2 relative z-10">
+            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Good Evening <span className="inline-block animate-wave origin-bottom-right drop-shadow-sm text-foreground">👋</span>
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-lg font-medium">
               Ready to stay consistent today?
             </p>
           </header>
 
-          {/* Habits Grid */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold tracking-tight">Your Habits</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {habits.map((habit) => (
-                <HabitCard key={habit.id} habit={habit} />
-              ))}
-            </div>
-          </section>
-
-          {/* Journal & Heatmap Grid */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
-            <div className="h-full min-h-[350px]">
-              <JournalEditor />
-            </div>
-            <div className="space-y-6">
-              <CalendarHeatmap />
-            </div>
-          </section>
+          {/* Main Content Area */}
+          {activeView === "dashboard" ? (
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Top Row: Heatmap (2 cols) + Journal (1 col) */}
+              <div className="lg:col-span-2">
+                <ProductivityCalendar />
+              </div>
+              <div className="lg:col-span-1 h-full min-h-[250px]">
+                <JournalEditor />
+              </div>
+              
+              {/* Bottom Row: Top Streaks (Full width) */}
+              <div className="lg:col-span-3 pb-8">
+                <TopStreaks />
+              </div>
+            </section>
+          ) : (
+            <JournalBook />
+          )}
         </div>
       </main>
 
