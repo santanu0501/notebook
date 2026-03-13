@@ -15,9 +15,7 @@ export function RightPanel({ initialTasks = [] }: { initialTasks?: any[] }) {
 
   useEffect(() => {
     // Always sync server tasks to keep local state up-to-date with real DB IDs
-    if (initialTasks.length > 0) {
-      setTasks(initialTasks);
-    }
+    setTasks(initialTasks);
     setMounted(true);
   }, [initialTasks, setTasks]);
 
@@ -50,7 +48,7 @@ export function RightPanel({ initialTasks = [] }: { initialTasks?: any[] }) {
         <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-            <TrendingUp className="w-4 h-4" /> Productivity Score
+            Productivity Score
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 relative z-10">

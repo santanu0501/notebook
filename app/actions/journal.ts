@@ -46,3 +46,26 @@ export async function getJournalEntries() {
     return [];
   }
 }
+
+export async function deleteJournalEntry(id: string) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    await db.journalEntry.delete({
+      where: {
+        id,
+        userId, // Ensure the user can only delete their own entries
+      },
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete journal:", error);
+    return { success: false, error: "Failed to delete entry" };
+  }
+}

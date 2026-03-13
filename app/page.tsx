@@ -30,15 +30,9 @@ export default async function Home() {
             <div className="flex items-center gap-4">
               <Link 
                 href="/login"
-                className="text-sm font-medium hover:text-primary transition-colors px-4 py-2 hidden sm:block"
+                className="text-sm font-medium hover:text-primary transition-all px-5 py-2.5 rounded-full border border-border/60 hover:border-primary/50 backdrop-blur-sm bg-white/5 hover:bg-primary/10"
               >
-                Log In
-              </Link>
-              <Link 
-                href="/register"
-                className="text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)]"
-              >
-                Sign Up
+                Login
               </Link>
             </div>
           )}
@@ -48,9 +42,8 @@ export default async function Home() {
       <main className="relative z-10 flex-1 flex flex-col items-center w-full">
         
         {/* Hero Section */}
-        <section className="flex flex-col items-center justify-center text-center px-6 pt-20 pb-24 md:pt-32 md:pb-40 max-w-5xl mx-auto w-full">
+        <section className="flex flex-col items-center justify-center text-center px-6 pt-12 pb-24 md:pt-20 md:pb-40 max-w-5xl mx-auto w-full">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8 border border-primary/20 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
             Your personal growth OS
           </div>
           

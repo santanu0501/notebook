@@ -92,7 +92,7 @@ export function SidebarNav() {
 
         <div className="mt-8 mb-4">
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Habit
+            Habits
           </h3>
           <div className="space-y-1">
             {habits.map((habit) => {

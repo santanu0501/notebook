@@ -5,16 +5,32 @@ import { format, parseISO } from "date-fns";
 import { useHabitStore } from "@/store/habitStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookOpen, Calendar as CalendarIcon } from "lucide-react";
+import { BookOpen, Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function JournalBook() {
-  const { journalEntries } = useHabitStore();
+  const { journalEntries, removeJournalEntry } = useHabitStore();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
     journalEntries.length > 0 ? journalEntries[0].id : null
   );
 
   const selectedEntry = journalEntries.find((entry) => entry.id === selectedEntryId);
+
+  const handleDeleteEntry = async (e: React.MouseEvent, entryId: string) => {
+    e.stopPropagation();
+    // Optimistic removal from local state
+    removeJournalEntry(entryId);
+
+    // If the deleted entry was selected, select another one
+    if (selectedEntryId === entryId) {
+      const remaining = journalEntries.filter((entry) => entry.id !== entryId);
+      setSelectedEntryId(remaining.length > 0 ? remaining[0].id : null);
+    }
+
+    // Delete from database
+    const { deleteJournalEntry } = await import("@/app/actions/journal");
+    await deleteJournalEntry(entryId);
+  };
 
   if (journalEntries.length === 0) {
     return (
@@ -46,24 +62,24 @@ export function JournalBook() {
           <div className="h-full px-3 py-3 overflow-y-auto no-scrollbar">
             <div className="space-y-2">
               {journalEntries.map((entry) => (
-                <button
+                <div
                   key={entry.id}
-                  onClick={() => setSelectedEntryId(entry.id)}
                   className={cn(
-                    "w-full text-left p-4 rounded-xl transition-all duration-200 border",
+                    "w-full text-left p-4 rounded-xl transition-all duration-200 border cursor-pointer group/entry relative",
                     selectedEntryId === entry.id
                       ? "bg-primary/10 border-primary/30 shadow-sm"
                       : "bg-background/50 border-border/50 hover:bg-muted/50 hover:border-border/80"
                   )}
+                  onClick={() => setSelectedEntryId(entry.id)}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      "p-2 rounded-lg",
+                      "p-2 rounded-lg shrink-0",
                       selectedEntryId === entry.id ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                     )}>
                       <CalendarIcon className="w-4 h-4" />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className={cn(
                         "font-medium",
                         selectedEntryId === entry.id ? "text-primary" : "text-foreground"
@@ -74,8 +90,17 @@ export function JournalBook() {
                         {entry.content}
                       </p>
                     </div>
+                    {/* Delete button */}
+                    <button
+                      onClick={(e) => handleDeleteEntry(e, entry.id)}
+                      className="opacity-0 group-hover/entry:opacity-100 shrink-0 w-7 h-7 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive flex items-center justify-center transition-all border border-transparent hover:border-destructive/30"
+                      aria-label="Delete journal entry"
+                      title="Delete journal entry"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>

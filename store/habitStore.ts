@@ -21,6 +21,7 @@ interface HabitStore {
 
   removeTask: (taskId: string) => void;
   removeHabit: (habitId: string) => void;
+  removeJournalEntry: (id: string) => void;
 }
 
 export const useHabitStore = create<HabitStore>((set) => ({
@@ -108,5 +109,10 @@ export const useHabitStore = create<HabitStore>((set) => ({
   removeHabit: (habitId) =>
     set((state) => ({
       habits: state.habits.filter(h => h.id !== habitId)
+    })),
+
+  removeJournalEntry: (id) =>
+    set((state) => ({
+      journalEntries: state.journalEntries.filter(entry => entry.id !== id)
     }))
 }));
