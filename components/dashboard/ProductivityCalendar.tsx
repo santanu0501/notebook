@@ -8,13 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Activity, TrendingUp } from "lucide-react";
 
-export function ProductivityCalendar() {
-  const { habits } = useHabitStore();
+export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: any[] }) {
+  const { habits, setHabits } = useHabitStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    if (initialHabits.length > 0) {
+      setHabits(initialHabits);
+    }
     setMounted(true);
-  }, []);
+  }, [initialHabits, setHabits]);
 
   // Generate 91 days grid (13 weeks * 7 days)
   const days = useMemo(() => {
@@ -108,24 +111,26 @@ export function ProductivityCalendar() {
                         aria-label={`${count} habits completed on ${date}`}
                       />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="px-3 py-2 text-sm max-w-[200px]">
-                      <p className="font-semibold border-b border-border/50 pb-1 mb-1">
-                        {format(new Date(date), "EEEE, MMM d, yyyy")}
-                      </p>
-                      {count > 0 ? (
-                        <>
-                          <p className="text-primary font-medium mb-1">
-                            {count} of {maxHabits} completed
-                          </p>
-                          <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
-                            {completedHabits.map(h => (
-                              <li key={h} className="truncate">{h}</li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : (
-                        <p className="text-muted-foreground">No habits completed.</p>
-                      )}
+                    <TooltipContent side="top" className="p-0 border-border/50 shadow-md">
+                      <div className="flex flex-col px-3 py-2.5 min-w-[180px]">
+                        <p className="font-semibold border-b border-border/50 pb-1.5 mb-1.5 text-sm">
+                          {format(new Date(date), "EEEE, MMM d, yyyy")}
+                        </p>
+                        {count > 0 ? (
+                          <div className="flex flex-col gap-1.5">
+                            <p className="text-primary font-medium text-sm">
+                              {count} of {maxHabits} completed
+                            </p>
+                            <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
+                              {completedHabits.map(h => (
+                                <li key={h} className="truncate">{h}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-sm pt-1">No habits completed.</p>
+                        )}
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                 );

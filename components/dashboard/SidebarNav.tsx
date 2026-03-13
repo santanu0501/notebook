@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Book, CheckSquare, Flame, Settings } from "lucide-react";
+import { LayoutDashboard, Book, CheckSquare, Flame, Settings, LogOut, Minus } from "lucide-react";
 import { useHabitStore } from "@/store/habitStore";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@clerk/nextjs";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "#", action: "dashboard" },
@@ -17,7 +18,7 @@ const navItems = [
 ];
 
 export function SidebarNav() {
-  const { habits, toggleHabitToday, addTask, addHabit, setActiveView, activeView } = useHabitStore();
+  const { habits, toggleHabitToday, addTask, addHabit, removeHabit, setActiveView, activeView } = useHabitStore();
   const [mounted, setMounted] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
@@ -41,19 +42,25 @@ export function SidebarNav() {
     }
   };
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (inputValue.trim()) {
-      addTask(inputValue.trim());
+      const currentInput = inputValue.trim();
+      addTask(currentInput);
       setIsTaskModalOpen(false);
       setInputValue("");
+      const { createTask } = await import("@/app/actions/tasks");
+      await createTask(currentInput);
     }
   };
 
-  const handleAddHabit = () => {
+  const handleAddHabit = async () => {
     if (inputValue.trim()) {
-      addHabit(inputValue.trim());
+      const currentInput = inputValue.trim();
+      addHabit(currentInput);
       setIsHabitModalOpen(false);
       setInputValue("");
+      const { createHabit } = await import("@/app/actions/habits");
+      await createHabit(currentInput);
     }
   };
 
@@ -85,7 +92,7 @@ export function SidebarNav() {
 
         <div className="mt-8 mb-4">
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Today&apos;s Habits
+            Habit
           </h3>
           <div className="space-y-1">
             {habits.map((habit) => {
@@ -97,29 +104,59 @@ export function SidebarNav() {
               return (
                 <div 
                   key={habit.id}
-                  className="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors group"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors group/habit"
                 >
-                  <Checkbox 
-                    id={`habit-${habit.id}`} 
-                    checked={isCompleted}
-                    onCheckedChange={() => toggleHabitToday(habit.id)}
-                    className="w-4 h-4"
-                  />
-                  <label 
-                    htmlFor={`habit-${habit.id}`}
-                    className={cn(
-                      "text-sm font-medium leading-none cursor-pointer flex-1 transition-all",
-                      isCompleted ? "line-through text-muted-foreground" : "text-foreground"
-                    )}
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <Checkbox 
+                      id={`habit-${habit.id}`} 
+                      checked={isCompleted}
+                      onCheckedChange={async () => {
+                        toggleHabitToday(habit.id);
+                        const { toggleHabit } = await import("@/app/actions/habits");
+                        const d = new Date().toISOString().split("T")[0];
+                        await toggleHabit(habit.id, d, isCompleted);
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <label 
+                      htmlFor={`habit-${habit.id}`}
+                      className={cn(
+                        "text-sm font-medium leading-none cursor-pointer flex-1 transition-all truncate",
+                        isCompleted ? "line-through text-muted-foreground" : "text-foreground"
+                      )}
+                    >
+                      {habit.name}
+                    </label>
+                  </div>
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      removeHabit(habit.id);
+                      const { deleteHabit } = await import("@/app/actions/habits");
+                      await deleteHabit(habit.id);
+                    }}
+                    className="opacity-0 group-hover/habit:opacity-100 flex-shrink-0 w-6 h-6 rounded-md hover:bg-destructive/20 text-muted-foreground hover:text-destructive flex items-center justify-center transition-all bg-background/50 border border-transparent hover:border-destructive/30"
+                    aria-label="Delete habit"
+                    title="Delete habit"
                   >
-                    {habit.name}
-                  </label>
+                    <Minus className="w-4 h-4" />
+                  </button>
                 </div>
               );
             })}
           </div>
         </div>
       </nav>
+
+      {/* Footer Area with Sign Out */}
+      <div className="p-4 mt-auto border-t border-border/40">
+        <SignOutButton>
+          <button className="flex items-center gap-3 px-3 py-2.5 w-full text-sm font-medium rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-all duration-200 group">
+            <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
+            Sign Out
+          </button>
+        </SignOutButton>
+      </div>
 
       {/* Task Modal */}
       <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>

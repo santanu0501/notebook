@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String?        @unique
+  password      String?        
+  name          String?
+  journals      JournalEntry[]
+  tasks         Task[]
+  habits        Habit[]
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Habit {
+  id           String         @id @default(cuid())
+  title        String
+  category     String         @default("Health")
+  icon         String         @default("Activity")
+  color        String         @default("blue")
+  createdAt    DateTime       @default(now())
+  user         User           @relation(fields: [userId], references: [id])
+  userId       String
+  history      HabitHistory[]
+}
+
+model HabitHistory {
+  id        String   @id @default(cuid())
+  date      String   // Using YYYY-MM-DD format
+  completed Boolean  @default(false)
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habitId   String
+
+  @@unique([habitId, date])
+}

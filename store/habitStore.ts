@@ -15,6 +15,12 @@ interface HabitStore {
   addTask: (title: string) => void;
   addHabit: (name: string) => void;
   setActiveView: (view: "dashboard" | "journal") => void;
+  setTasks: (tasks: any[]) => void;
+  setHabits: (habits: any[]) => void;
+  setJournalEntries: (entries: any[]) => void;
+
+  removeTask: (taskId: string) => void;
+  removeHabit: (habitId: string) => void;
 }
 
 export const useHabitStore = create<HabitStore>((set) => ({
@@ -84,4 +90,23 @@ export const useHabitStore = create<HabitStore>((set) => ({
 
   setActiveView: (view) =>
     set({ activeView: view }),
+
+  setTasks: (dbTasks) => 
+    set({ tasks: dbTasks }),
+    
+  setHabits: (dbHabits) =>
+    set({ habits: dbHabits }),
+    
+  setJournalEntries: (entries) =>
+    set({ journalEntries: entries }),
+
+  removeTask: (taskId) =>
+    set((state) => ({
+      tasks: state.tasks.filter(t => t.id !== taskId)
+    })),
+
+  removeHabit: (habitId) =>
+    set((state) => ({
+      habits: state.habits.filter(h => h.id !== habitId)
+    }))
 }));

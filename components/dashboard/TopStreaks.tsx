@@ -1,12 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useHabitStore } from "@/store/habitStore";
 import { calculateCurrentStreak, calculateLongestStreak } from "@/lib/streak";
 import { Card, CardContent } from "@/components/ui/card";
 import { Flame } from "lucide-react";
 
-export function TopStreaks() {
-  const { habits } = useHabitStore();
+export function TopStreaks({ initialHabits = [] }: { initialHabits?: any[] }) {
+  const { habits, setHabits } = useHabitStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (initialHabits.length > 0 && habits.length === 0) {
+      setHabits(initialHabits);
+    }
+    setMounted(true);
+  }, [initialHabits, setHabits, habits.length]);
+
+  if (!mounted) return null;
 
   // Calculate streaks and sort by best current streak
   const streakData = habits
