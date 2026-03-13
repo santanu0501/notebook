@@ -1,6 +1,7 @@
 export interface HabitHistoryEntry {
   date: string; // ISO format string: YYYY-MM-DD
   completed: boolean;
+  totalHabits?: number; // Snapshot of total habits user had on this day
 }
 
 export function calculateCurrentStreak(history: HabitHistoryEntry[]): number {

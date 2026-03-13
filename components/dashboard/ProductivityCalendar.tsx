@@ -29,22 +29,39 @@ export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: a
     return arr;
   }, [mounted]);
 
+  // Get habits that existed on a given date (created on or before that date) - fallback
+  const getHabitsForDate = (date: string) => {
+    return habits.filter((habit) => {
+      if (!habit.createdAt) return true;
+      const habitCreatedDate = format(new Date(habit.createdAt), "yyyy-MM-dd");
+      return habitCreatedDate <= date;
+    });
+  };
+
   // Aggregate completion data per day
   const getDayCompletionData = (date: string) => {
-    if (!date) return { count: 0, completedHabits: [] };
+    if (!date) return { count: 0, completedHabits: [], totalHabits: 0 };
     
     let count = 0;
     const completedHabits: string[] = [];
+    let storedTotalHabits = 0;
     
     habits.forEach((habit) => {
-      const entry = habit.history.find((h) => h.date === date);
+      const entry = habit.history.find((h: any) => h.date === date);
       if (entry?.completed) {
         count++;
         completedHabits.push(habit.name);
+        // Use the stored totalHabits from DB (take the max across entries for this day)
+        if (entry.totalHabits && entry.totalHabits > storedTotalHabits) {
+          storedTotalHabits = entry.totalHabits;
+        }
       }
     });
     
-    return { count, completedHabits };
+    // Use stored totalHabits if available, otherwise fall back to createdAt-based count
+    const totalHabits = storedTotalHabits > 0 ? storedTotalHabits : getHabitsForDate(date).length;
+    
+    return { count, completedHabits, totalHabits };
   };
 
   const getIntensityClass = (count: number, maxCount: number) => {
@@ -59,16 +76,15 @@ export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: a
     return "bg-primary shadow-[0_0_16px_rgba(var(--primary),0.6)]";
   };
 
-  const maxHabits = habits.length;
+
 
   return (
     <Card className="group relative overflow-hidden transition-all duration-300 border-border/40 bg-card/60 backdrop-blur-md shadow-sm hover:border-border/80">
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       
-      <CardHeader className="pb-2 relative z-10 flex flex-row items-center justify-between">
+      <CardHeader className="pb-3 pt-4 px-6 relative z-10 flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <Activity className="w-5 h-5 text-primary" />
+          <CardTitle className="text-xl font-semibold tracking-tight">
             Productivity Map
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1 font-medium">Last 90 days of activity</p>
@@ -97,7 +113,7 @@ export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: a
                    return <div key={index} className="w-full aspect-square min-w-[1.25rem] rounded-[4px] bg-muted/20" />;
                 }
                 
-                const { count, completedHabits } = getDayCompletionData(date);
+                const { count, completedHabits, totalHabits } = getDayCompletionData(date);
                 
                 return (
                   <Tooltip key={date}>
@@ -105,7 +121,7 @@ export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: a
                       <div
                         className={cn(
                           "w-full aspect-square min-w-[1.25rem] rounded-[4px] transition-all duration-300 ring-offset-background hover:ring-2 hover:ring-primary/50 hover:ring-offset-1",
-                          getIntensityClass(count, maxHabits)
+                          getIntensityClass(count, totalHabits)
                         )}
                         role="img"
                         aria-label={`${count} habits completed on ${date}`}
@@ -119,7 +135,7 @@ export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: a
                         {count > 0 ? (
                           <div className="flex flex-col gap-1.5">
                             <p className="text-primary font-medium text-sm">
-                              {count} of {maxHabits} completed
+                              {count} of {totalHabits} completed
                             </p>
                             <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
                               {completedHabits.map(h => (

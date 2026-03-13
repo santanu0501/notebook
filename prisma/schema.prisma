@@ -21,6 +21,8 @@ model User {
 model JournalEntry {
   id        String   @id @default(cuid())
   content   String
+  sentiment String?
+  themes    String[]
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   userId    String
@@ -48,11 +50,12 @@ model Habit {
 }
 
 model HabitHistory {
-  id        String   @id @default(cuid())
-  date      String   // Using YYYY-MM-DD format
-  completed Boolean  @default(false)
-  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
-  habitId   String
+  id          String   @id @default(cuid())
+  date        String   // Using YYYY-MM-DD format
+  completed   Boolean  @default(false)
+  totalHabits Int      @default(0) // Snapshot of total habits user had on this day
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habitId     String
 
   @@unique([habitId, date])
 }

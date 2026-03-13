@@ -23,7 +23,9 @@ export function DashboardWorkspace({
       const formattedEntries = serverJournalEntries.map(entry => ({
         id: entry.id,
         date: new Date(entry.createdAt).toISOString(),
-        content: entry.content
+        content: entry.content,
+        sentiment: entry.sentiment,
+        themes: entry.themes
       }));
       setJournalEntries(formattedEntries);
     }

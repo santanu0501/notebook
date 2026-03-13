@@ -52,12 +52,18 @@ export async function toggleHabit(habitId: string, date: string, wasCompleted: b
         }
       });
     } else {
+      // Count total habits user currently has
+      const totalHabits = await db.habit.count({
+        where: { userId }
+      });
+
       // Meaning we are completing it
       await db.habitHistory.create({
         data: {
           habitId,
           date,
-          completed: true
+          completed: true,
+          totalHabits
         }
       });
     }

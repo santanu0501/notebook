@@ -6,6 +6,7 @@ export interface Habit {
   name: string;
   history: HabitHistoryEntry[];
   icon?: string;
+  createdAt?: string;
 }
 
 export interface Task {
@@ -19,6 +20,8 @@ export interface JournalEntry {
   id: string;
   date: string;
   content: string;
+  sentiment?: string | null;
+  themes?: string[];
 }
 
 // Generate last 14 days history helper

@@ -5,14 +5,19 @@ import { format, parseISO } from "date-fns";
 import { useHabitStore } from "@/store/habitStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookOpen, Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { BookOpen, Calendar as CalendarIcon, Trash2, Edit2, Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmotionalTrends } from "./EmotionalTrends";
 
 export function JournalBook() {
-  const { journalEntries, removeJournalEntry } = useHabitStore();
+  const { journalEntries, removeJournalEntry, updateJournalEntry: updateJournalEntryStore } = useHabitStore();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
     journalEntries.length > 0 ? journalEntries[0].id : null
   );
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const selectedEntry = journalEntries.find((entry) => entry.id === selectedEntryId);
 
@@ -30,6 +35,49 @@ export function JournalBook() {
     // Delete from database
     const { deleteJournalEntry } = await import("@/app/actions/journal");
     await deleteJournalEntry(entryId);
+  };
+
+  const startEditing = () => {
+    if (selectedEntry) {
+      setEditContent(selectedEntry.content);
+      setIsEditing(true);
+    }
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedEntryId || !editContent.trim() || editContent === selectedEntry?.content) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { updateJournalEntry } = await import("@/app/actions/journal");
+      const result = await updateJournalEntry(selectedEntryId, editContent);
+      
+      if (result.success && result.entry) {
+        // Update local state instead of full reload
+        updateJournalEntryStore(selectedEntryId, result.entry as any);
+      }
+    } catch (error) {
+      console.error("Failed to save edit:", error);
+    } finally {
+      setIsSaving(false);
+      setIsEditing(false);
+    }
+  };
+
+  // Reset edit state when selecting a different entry
+  const handleSelectEntry = (id: string) => {
+    if (id !== selectedEntryId) {
+      setSelectedEntryId(id);
+      setIsEditing(false);
+    }
   };
 
   if (journalEntries.length === 0) {
@@ -70,7 +118,7 @@ export function JournalBook() {
                       ? "bg-primary/10 border-primary/30 shadow-sm"
                       : "bg-background/50 border-border/50 hover:bg-muted/50 hover:border-border/80"
                   )}
-                  onClick={() => setSelectedEntryId(entry.id)}
+                  onClick={() => handleSelectEntry(entry.id)}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
@@ -108,32 +156,83 @@ export function JournalBook() {
       </Card>
 
       {/* Right Pane - Full Entry Content */}
-      <Card className="md:col-span-8 border-border/40 bg-card/60 backdrop-blur-md shadow-sm h-full flex flex-col relative group hover:border-border/80 transition-colors">
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="md:col-span-8 flex flex-col h-full overflow-hidden">
+        {/* The Mood Ring Dashboard */}
+        <EmotionalTrends entries={journalEntries as any} />
+
+        <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm flex-1 flex flex-col relative group hover:border-border/80 transition-colors">
+          <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
         
         {selectedEntry ? (
           <>
-            <CardHeader className="pb-4 border-b border-border/30 shrink-0">
+            <CardHeader className="pb-4 border-b border-border/30 shrink-0 flex flex-row items-center justify-between">
               <h2 className="text-2xl font-bold text-foreground">
                 {format(parseISO(selectedEntry.date), "EEEE, MMMM do, yyyy")}
               </h2>
+              
+              {!isEditing ? (
+                <button
+                  onClick={startEditing}
+                  className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-secondary-foreground transition-all duration-200 border border-border/50"
+                  aria-label="Edit journal entry"
+                  title="Edit journal entry"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={cancelEditing}
+                    className="p-2 inline-flex items-center justify-center rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground transition-all duration-200"
+                    disabled={isSaving}
+                    title="Cancel"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="p-2 inline-flex items-center justify-center rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200"
+                    disabled={isSaving}
+                    title="Save Changes"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  </button>
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="flex-1 p-0 min-h-0">
-              <ScrollArea className="h-full px-6 py-6">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <p className="text-base leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                    {selectedEntry.content}
+            <CardContent className="flex-1 p-0 min-h-0 flex flex-col">
+              {isEditing ? (
+                <div className="h-full px-6 py-6 flex flex-col">
+                  <textarea
+                    autoFocus
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="flex-1 w-full bg-background/50 border border-border/50 rounded-xl p-4 text-base leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-all duration-300"
+                    placeholder="Write your journal entry here..."
+                  />
+                  <p className="mt-3 text-xs text-muted-foreground tabular-nums flex items-center justify-between">
+                    <span>Editing entry</span>
+                    <span>{editContent.length} characters</span>
                   </p>
                 </div>
-              </ScrollArea>
+              ) : (
+                <ScrollArea className="h-full px-6 py-6">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <p className="text-base leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                      {selectedEntry.content}
+                    </p>
+                  </div>
+                </ScrollArea>
+              )}
             </CardContent>
           </>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            Select an entry to read.
+             Select an entry to read.
           </div>
         )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

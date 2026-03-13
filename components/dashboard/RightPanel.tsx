@@ -41,6 +41,9 @@ export function RightPanel({ initialTasks = [] }: { initialTasks?: any[] }) {
     return "text-red-500";
   }, [productivityScore]);
 
+  // Prevent hydration mismatch from randomly generated Checkbox IDs
+  if (!mounted) return null;
+
   return (
     <aside className="h-full flex flex-col gap-6 bg-background/40 backdrop-blur-md border-l border-border/40 p-6 overflow-y-auto no-scrollbar relative z-20">
       {/* Productivity Score Card */}

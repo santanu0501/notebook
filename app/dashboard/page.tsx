@@ -55,12 +55,12 @@ export default async function DashboardPage() {
       <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[30%] bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Left Sidebar */}
-      <div className="hidden md:flex md:w-64 h-full flex-shrink-0">
+      <div className="hidden md:flex h-full flex-shrink-0 transition-all duration-300 ease-in-out">
         <SidebarNav />
       </div>
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col h-full min-w-0 overflow-y-auto">
+      <main className="flex-1 flex flex-col h-full min-w-0 overflow-y-auto transition-all duration-300 ease-in-out">
         <div className="flex-1 p-6 md:p-8 space-y-8 max-w-5xl mx-auto w-full">
           {/* Header */}
           <header className="space-y-2 relative z-10">
