@@ -1,15 +1,15 @@
 "use client";
 
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       {/* Decorative background glows matching the original theme */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="relative z-10 w-full max-w-md flex justify-center">
-        <SignIn
+        <SignUp
           appearance={{
             elements: {
               cardBox: "shadow-none border-border/40 bg-card/60 backdrop-blur-xl rounded-xl",
@@ -31,7 +31,7 @@ export default function LoginPage() {
           }}
           routing="hash"
           forceRedirectUrl="/dashboard"
-          signUpUrl="/register"
+          signInUrl="/login"
         />
       </div>
     </div>

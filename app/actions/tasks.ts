@@ -1,13 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 export async function getTasks() {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const { userId } = await auth();
 
     if (!userId) return [];
 
@@ -24,8 +23,7 @@ export async function getTasks() {
 
 export async function createTask(title: string) {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const { userId } = await auth();
 
     if (!userId) throw new Error("Unauthorized");
 
@@ -45,8 +43,7 @@ export async function createTask(title: string) {
 
 export async function toggleTaskComplete(id: string, currentState: boolean) {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const { userId } = await auth();
 
     if (!userId) throw new Error("Unauthorized");
 
@@ -59,5 +56,22 @@ export async function toggleTaskComplete(id: string, currentState: boolean) {
     return { success: true };
   } catch (error) {
     return { success: false };
+  }
+}
+
+export async function deleteTask(id: string) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) throw new Error("Unauthorized");
+
+    await db.task.delete({
+      where: { id, userId }
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to delete task" };
   }
 }

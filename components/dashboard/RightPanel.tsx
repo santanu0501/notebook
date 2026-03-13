@@ -7,19 +7,19 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckSquare, TrendingUp, Target } from "lucide-react";
+import { CheckSquare, TrendingUp, Target, Minus } from "lucide-react";
 
 export function RightPanel({ initialTasks = [] }: { initialTasks?: any[] }) {
-  const { tasks, toggleTask, habits, setTasks } = useHabitStore();
+  const { tasks, toggleTask, habits, setTasks, removeTask } = useHabitStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // If we have server tasks, sync them to our client state once on mount
-    if (initialTasks.length > 0 && tasks.length === 0) {
+    // Always sync server tasks to keep local state up-to-date with real DB IDs
+    if (initialTasks.length > 0) {
       setTasks(initialTasks);
     }
     setMounted(true);
-  }, [initialTasks, setTasks, tasks.length]);
+  }, [initialTasks, setTasks]);
 
   useEffect(() => {
     setMounted(true);
@@ -105,27 +105,43 @@ export function RightPanel({ initialTasks = [] }: { initialTasks?: any[] }) {
                     await toggleTaskComplete(task.id, task.completed);
                   }}
                 >
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={task.completed}
-                      onCheckedChange={async () => {
-                        toggleTask(task.id);
-                        const { toggleTaskComplete } = await import("@/app/actions/tasks");
-                        await toggleTaskComplete(task.id, task.completed);
-                      }}
-                      className="mt-0.5 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p
-                        title={task.title}
-                        className={cn(
-                          "text-sm font-medium leading-tight transition-all truncate",
-                          task.completed && "line-through text-muted-foreground"
-                        )}
-                      >
-                        {task.title}
-                      </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Checkbox
+                        checked={task.completed}
+                        onCheckedChange={async () => {
+                          toggleTask(task.id);
+                          const { toggleTaskComplete } = await import("@/app/actions/tasks");
+                          await toggleTaskComplete(task.id, task.completed);
+                        }}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p
+                          title={task.title}
+                          className={cn(
+                            "text-sm font-medium leading-tight transition-all truncate",
+                            task.completed && "line-through text-muted-foreground"
+                          )}
+                        >
+                          {task.title}
+                        </p>
+                      </div>
                     </div>
+                    {/* Delete minus button */}
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation(); // Prevent the whole div onClick from firing
+                        removeTask(task.id);
+                        const { deleteTask } = await import("@/app/actions/tasks");
+                        await deleteTask(task.id);
+                      }}
+                      className="opacity-0 group-hover/task:opacity-100 flex-shrink-0 w-6 h-6 rounded-md hover:bg-destructive/20 text-muted-foreground hover:text-destructive flex items-center justify-center transition-all bg-background/50 border border-transparent hover:border-destructive/30"
+                      aria-label="Delete task"
+                      title="Delete task"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}

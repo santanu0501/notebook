@@ -1,23 +1,52 @@
-import { auth } from "@/lib/auth";
+import { currentUser } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
 import { getTasks } from "@/app/actions/tasks";
 import { getHabits } from "@/app/actions/habits";
 import { redirect } from "next/navigation";
 import { SidebarNav } from "@/components/dashboard/SidebarNav";
-import { ProductivityCalendar } from "@/components/dashboard/ProductivityCalendar";
-import { JournalEditor } from "@/components/dashboard/JournalEditor";
-import { TopStreaks } from "@/components/dashboard/TopStreaks";
 import { RightPanel } from "@/components/dashboard/RightPanel";
+import { getJournalEntries } from "@/app/actions/journal";
+import { DashboardWorkspace } from "@/components/dashboard/DashboardWorkspace";
+
+function getGreeting() {
+  const hourStr = new Date().toLocaleString("en-US", { 
+    timeZone: "Asia/Kolkata", 
+    hour: "numeric", 
+    hour12: false 
+  });
+  const hour = parseInt(hourStr, 10);
+  
+  if (hour >= 5 && hour < 12) return "Good Morning";
+  if (hour >= 12 && hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const user = await currentUser();
   
-  if (!session || !session.user) {
+  if (!user) {
     redirect("/login");
   }
+
+  // Lazy sync user to our DB so foreign key constraints work for tasks/habits/journals
+  const primaryEmail = user.emailAddresses[0]?.emailAddress;
+  await db.user.upsert({
+    where: { id: user.id },
+    update: {
+      email: primaryEmail,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+    },
+    create: {
+      id: user.id,
+      email: primaryEmail,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+    }
+  });
 
   // Fetch initial data from server here to pass into client components
   const serverTasks = await getTasks();
   const serverHabits = await getHabits();
+  const serverJournalEntries = await getJournalEntries();
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans relative selection:bg-primary/30">
@@ -36,7 +65,7 @@ export default async function DashboardPage() {
           {/* Header */}
           <header className="space-y-2 relative z-10">
             <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Good Evening, {session.user.name?.split(" ")[0]} <span className="inline-block animate-wave origin-bottom-right drop-shadow-sm text-foreground">👋</span>
+              {getGreeting()}, {user.firstName || "User"} <span className="inline-block animate-wave origin-bottom-right drop-shadow-sm text-foreground">👋</span>
             </h1>
             <p className="text-muted-foreground text-lg font-medium">
               Ready to stay consistent today?
@@ -44,20 +73,10 @@ export default async function DashboardPage() {
           </header>
 
           {/* Main Content Area */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Top Row: Heatmap (2 cols) + Journal (1 col) */}
-            <div className="lg:col-span-2">
-              <ProductivityCalendar initialHabits={serverHabits} />
-            </div>
-            <div className="lg:col-span-1 h-full min-h-[250px]">
-              <JournalEditor />
-            </div>
-            
-            {/* Bottom Row: Top Streaks (Full width) */}
-            <div className="lg:col-span-3 pb-8">
-              <TopStreaks initialHabits={serverHabits} />
-            </div>
-          </section>
+          <DashboardWorkspace 
+            serverHabits={serverHabits} 
+            serverJournalEntries={serverJournalEntries} 
+          />
         </div>
       </main>
 

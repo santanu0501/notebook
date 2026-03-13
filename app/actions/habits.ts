@@ -1,22 +1,27 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 export async function getHabits() {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const { userId } = await auth();
 
     if (!userId) return [];
 
-    return await db.habit.findMany({
+    const habitsDB = await db.habit.findMany({
       where: { userId },
       include: {
         history: true
       }
     });
+
+    // Map `title` from DB to `name` for the frontend store expectations
+    return habitsDB.map(h => ({
+      ...h,
+      name: h.title
+    }));
   } catch (error) {
     console.error(error);
     return [];
@@ -25,8 +30,7 @@ export async function getHabits() {
 
 export async function toggleHabit(habitId: string, date: string, wasCompleted: boolean) {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const { userId } = await auth();
 
     if (!userId) throw new Error("Unauthorized");
     
@@ -63,5 +67,44 @@ export async function toggleHabit(habitId: string, date: string, wasCompleted: b
   } catch (error) {
     console.error(error);
     return { success: false };
+  }
+}
+
+export async function createHabit(title: string) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) throw new Error("Unauthorized");
+
+    await db.habit.create({
+      data: {
+        title,
+        userId
+      }
+    });
+    
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to create habit" };
+  }
+}
+
+export async function deleteHabit(id: string) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) throw new Error("Unauthorized");
+
+    // Thanks to Prisma's Cascade delete on habitHistory, this will clean up safely
+    await db.habit.delete({
+      where: { id, userId }
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: "Failed to delete habit" };
   }
 }
