@@ -9,9 +9,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckSquare, TrendingUp, Target } from "lucide-react";
 
-export function RightPanel() {
-  const { tasks, toggleTask, habits } = useHabitStore();
+export function RightPanel({ initialTasks = [] }: { initialTasks?: any[] }) {
+  const { tasks, toggleTask, habits, setTasks } = useHabitStore();
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // If we have server tasks, sync them to our client state once on mount
+    if (initialTasks.length > 0 && tasks.length === 0) {
+      setTasks(initialTasks);
+    }
+    setMounted(true);
+  }, [initialTasks, setTasks, tasks.length]);
 
   useEffect(() => {
     setMounted(true);
@@ -88,12 +96,23 @@ export function RightPanel() {
                       ? "bg-muted/20 border-border/30" 
                       : "bg-background/50 border-border/50 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--primary),0.05)]"
                   )}
-                  onClick={() => toggleTask(task.id)}
+                  onClick={async () => {
+                    // Optimistic update in Zustand to make the UI feel fast
+                    toggleTask(task.id);
+                    
+                    // Call the real database action
+                    const { toggleTaskComplete } = await import("@/app/actions/tasks");
+                    await toggleTaskComplete(task.id, task.completed);
+                  }}
                 >
                   <div className="flex items-start gap-3">
                     <Checkbox
                       checked={task.completed}
-                      onCheckedChange={() => toggleTask(task.id)}
+                      onCheckedChange={async () => {
+                        toggleTask(task.id);
+                        const { toggleTaskComplete } = await import("@/app/actions/tasks");
+                        await toggleTaskComplete(task.id, task.completed);
+                      }}
                       className="mt-0.5 shrink-0"
                     />
                     <div className="flex-1 min-w-0">

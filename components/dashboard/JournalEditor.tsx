@@ -10,17 +10,31 @@ import { Save, BookOpen } from "lucide-react";
 
 export function JournalEditor() {
   const [content, setContent] = useState("");
-  const { addJournalEntry } = useHabitStore();
+  const [isSaving, setIsSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleSave = () => {
-    if (!content.trim()) return;
-    addJournalEntry(content);
-    setContent("");
+  const handleSave = async () => {
+    if (!content.trim() || isSaving) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Call Server Action
+      const { saveJournalEntry } = await import("@/app/actions/journal");
+      const result = await saveJournalEntry(content);
+      
+      if (result.success) {
+        setContent("");
+      }
+    } catch (error) {
+      console.error("Failed to save", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

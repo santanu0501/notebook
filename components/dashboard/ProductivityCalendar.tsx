@@ -8,13 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Activity, TrendingUp } from "lucide-react";
 
-export function ProductivityCalendar() {
-  const { habits } = useHabitStore();
+export function ProductivityCalendar({ initialHabits = [] }: { initialHabits?: any[] }) {
+  const { habits, setHabits } = useHabitStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    if (initialHabits.length > 0 && habits.length === 0) {
+      setHabits(initialHabits);
+    }
     setMounted(true);
-  }, []);
+  }, [initialHabits, setHabits, habits.length]);
 
   // Generate 91 days grid (13 weeks * 7 days)
   const days = useMemo(() => {

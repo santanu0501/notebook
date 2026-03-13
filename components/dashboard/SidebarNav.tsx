@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Book, CheckSquare, Flame, Settings } from "lucide-react";
+import { LayoutDashboard, Book, CheckSquare, Flame, Settings, LogOut } from "lucide-react";
 import { useHabitStore } from "@/store/habitStore";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "#", action: "dashboard" },
@@ -120,6 +121,17 @@ export function SidebarNav() {
           </div>
         </div>
       </nav>
+
+      {/* Footer Area with Sign Out */}
+      <div className="p-4 mt-auto border-t border-border/40">
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex items-center gap-3 px-3 py-2.5 w-full text-sm font-medium rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-all duration-200 group"
+        >
+          <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
+          Sign Out
+        </button>
+      </div>
 
       {/* Task Modal */}
       <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
