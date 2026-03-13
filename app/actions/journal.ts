@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
 import { z } from "zod";
+import { hasGoogleApiKeyPool, withGoogleApiKeyRotation } from "@/lib/ai/googleKeyRotation";
 
 export async function saveJournalEntry(content: string) {
   try {
@@ -19,9 +19,11 @@ export async function saveJournalEntry(content: string) {
     let themes: string[] = [];
 
     try {
-      if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-        const { object } = await generateObject({
-          model: google('gemini-2.5-flash'),
+      if (hasGoogleApiKeyPool()) {
+        const { object } = await withGoogleApiKeyRotation(async (googleForKey) => {
+          return await generateObject({
+          model: googleForKey('gemini-2.5-flash'),
+          maxRetries: 0,
           schema: z.object({
             sentiment: z.enum(['Positive', 'Productive', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Lethargic', 'Stressed', 'Overwhelmed', 'Angry', 'Frustrated']).describe('The core overarching emotion of the journal entry.'),
             themes: z.array(z.string()).max(3).describe('Up to 3 key themes discussed in the entry, like "Work", "Family", "Health", "Sleep", "Finance", "Social", "Creative", "Spiritual", etc. Keep them 1-2 words.'),
@@ -30,6 +32,7 @@ export async function saveJournalEntry(content: string) {
           
           Journal Entry:
           "${content}"`
+        });
         });
         
         sentiment = object.sentiment;
@@ -113,14 +116,17 @@ export async function updateJournalEntry(id: string, content: string) {
 
     // Re-run AI analysis on the updated content
     try {
-      if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-        const { object } = await generateObject({
-          model: google('gemini-2.5-flash'),
+      if (hasGoogleApiKeyPool()) {
+        const { object } = await withGoogleApiKeyRotation(async (googleForKey) => {
+          return await generateObject({
+          model: googleForKey('gemini-2.5-flash'),
+          maxRetries: 0,
           schema: z.object({
             sentiment: z.enum(['Positive', 'Productive', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Lethargic', 'Stressed', 'Overwhelmed', 'Angry', 'Frustrated']).describe('The core overarching emotion of the journal entry.'),
             themes: z.array(z.string()).max(3).describe('Up to 3 key themes discussed in the entry, like "Work", "Family", "Health", "Sleep", "Finance", "Social", "Creative", "Spiritual", etc. Keep them 1-2 words.'),
           }),
           prompt: `Analyze the following journal entry and extract its core sentiment and up to 3 key themes.\n\nJournal Entry:\n"${content}"`
+        });
         });
         
         sentiment = object.sentiment;
@@ -158,7 +164,7 @@ export async function backfillJournalSentiments() {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!hasGoogleApiKeyPool()) {
       return { success: false, error: "No AI API key configured" };
     }
 
@@ -171,13 +177,16 @@ export async function backfillJournalSentiments() {
 
     for (const entry of entriesToBackfill) {
       try {
-        const { object } = await generateObject({
-          model: google('gemini-2.5-flash'),
+        const { object } = await withGoogleApiKeyRotation(async (googleForKey) => {
+          return await generateObject({
+          model: googleForKey('gemini-2.5-flash'),
+          maxRetries: 0,
           schema: z.object({
             sentiment: z.enum(['Positive', 'Productive', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Lethargic', 'Stressed', 'Overwhelmed', 'Angry', 'Frustrated']).describe('The core overarching emotion of the journal entry.'),
             themes: z.array(z.string()).max(3).describe('Up to 3 key themes discussed in the entry, like "Work", "Family", "Health", "Sleep", "Finance", "Social", "Creative", "Spiritual", etc. Keep them 1-2 words.'),
           }),
           prompt: `Analyze the following journal entry and extract its core sentiment and up to 3 key themes.\n\nJournal Entry:\n"${entry.content}"`
+        });
         });
 
         await db.journalEntry.update({

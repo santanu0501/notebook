@@ -1,0 +1,100 @@
+"use server";
+
+import { db } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
+import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
+
+export async function runAuditor() {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    // 1. Find active habits
+    const habits = await db.habit.findMany({
+      where: { userId },
+      include: {
+        history: {
+          orderBy: { date: 'desc' },
+          take: 3, // look at recent history
+        },
+        accountabilityMessages: {
+          where: { isRead: false },
+        }
+      }
+    });
+
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    
+    let yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    // Find a habit where the streak is broken (missed yesterday and today)
+    // and no unread messages currently exist for this habit.
+    for (const habit of habits) {
+      if (habit.accountabilityMessages.length > 0) {
+        // Already have an unread message for this habit, skip
+        continue;
+      }
+
+      // We define "broken" as maybe they didn't complete it yesterday and/or today
+      // Wait, we need to make sure we only trigger this reasonably. Let's say if they haven't completed it yesterday.
+      const historyYesterday = habit.history.find(h => h.date === yesterdayStr);
+      const historyToday = habit.history.find(h => h.date === todayStr);
+
+      const completedYesterday = historyYesterday?.completed ?? false;
+      const completedToday = historyToday?.completed ?? false;
+
+      // If they missed yesterday (or earlier) and haven't done it today
+      // Let's enforce it if yesterday was NOT completed.
+      if (!completedYesterday) {
+        // Check if we already sent a message recently to avoid spamming every page load
+        const recentMessage = await db.accountabilityMessage.findFirst({
+          where: { 
+            userId, 
+            habitId: habit.id,
+            createdAt: {
+              // Message created in the last 24 hours
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+            }
+          }
+        });
+
+        if (recentMessage) continue;
+
+        // Execute ENFORCER
+        await runEnforcer(userId, habit.id, habit.title);
+      }
+    }
+  } catch (err) {
+    console.error("Auditor error:", err);
+  }
+}
+
+async function runEnforcer(userId: string, habitId: string, habitTitle: string) {
+  // 1. Gather recent journal entries to learn about their goals
+  const journals = await db.journalEntry.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  const journalContext = journals.map(j => `- [${j.createdAt.toISOString().split('T')[0]}]: ${j.content}`).join('\\n');
+
+  // 2. Generate the unhinged message
+  let messageContent = \`You've been slacking on your habit: "\${habitTitle}". Get it together.\`;
+
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    try {
+      const { text } = await generateText({
+        model: google('gemini-2.5-flash'),
+        system: "You are the 'Ruthless Accountability Coach'. Your job is to motivate the user by being brutally honest, slightly unhinged, and strictly accountable. Do not be overly polite or generic. Use their own recent journal entries against them if relevant to point out their hypocrisy or abandoned goals. Keep it under 3 sentences. Be punchy, dark-humored, and intensely motivating in a rough way. DO NOT use emojis.",
+        prompt: \`The user has missed their habit "\${habitTitle}". 
+        
+        Here are their recent journal entries to understand their state of mind and goals:
+        \${journalContext || "(No journal entries found)"}
+        
+        Draft a highly personalized, slightly unhinged notification to shame or motivate them into doing "\${habitTitle}".\`
+      });

@@ -6,8 +6,7 @@ import { redirect } from "next/navigation";
 import { SidebarNav } from "@/components/dashboard/SidebarNav";
 import { RightPanel } from "@/components/dashboard/RightPanel";
 import { getJournalEntries } from "@/app/actions/journal";
-import { DashboardWorkspace } from "@/components/dashboard/DashboardWorkspace";
-
+import { DashboardWorkspace } from "@/components/dashboard/DashboardWorkspace";import { RuthlessToast } from "@/components/ui/RuthlessToast";
 function getGreeting() {
   const hourStr = new Date().toLocaleString("en-US", { 
     timeZone: "Asia/Kolkata", 
@@ -84,6 +83,8 @@ export default async function DashboardPage() {
       <div className="hidden xl:block w-80 h-full flex-shrink-0">
         <RightPanel initialTasks={serverTasks} />
       </div>
+
+      <RuthlessToast />
     </div>
   );
 }

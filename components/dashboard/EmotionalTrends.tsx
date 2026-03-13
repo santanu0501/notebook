@@ -29,6 +29,7 @@ export function EmotionalTrends({
 }) {
   const [isBackfilling, setIsBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<string | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<{ sentiment?: Sentiment | null; hasEntry: boolean; date: Date } | null>(null);
 
   // Count entries missing sentiment
   const missingCount = useMemo(() => {
@@ -179,8 +180,9 @@ export function EmotionalTrends({
             {moodData.map((day, i) => (
               <div 
                 key={i} 
-                className="flex flex-col items-center group/day relative cursor-help"
-                title={day.hasEntry ? `${day.sentiment || 'Unanalyzed'} ${getSentimentEmoji(day.sentiment)}` : 'No entry'}
+                className="flex flex-col items-center group/day relative cursor-pointer"
+                onMouseEnter={() => setHoveredDay({ sentiment: day.sentiment, hasEntry: day.hasEntry, date: day.date })}
+                onMouseLeave={() => setHoveredDay(null)}
               >
                 <div className={cn(
                   "w-7 h-7 sm:w-8 sm:h-8 rounded-full border transition-all duration-300 flex items-center justify-center",
@@ -199,14 +201,16 @@ export function EmotionalTrends({
             ))}
           </div>
         </div>
-
         {/* Top Themes */}
         {topThemes.length > 0 && (
-          <div className="pt-3 border-t border-border/30">
-            <span className="text-xs font-medium text-muted-foreground block mb-2">
-              Recurring Themes
-            </span>
-            <div className="flex flex-wrap gap-2">
+          <div className="pt-3 border-t border-border/30 min-h-[70px] flex flex-col">
+            <div className="mb-2">
+              <span className="text-xs font-medium text-muted-foreground block">
+                Recurring Themes
+              </span>
+            </div>
+            <div className="flex items-center justify-between w-full mt-auto">
+              <div className="flex flex-wrap gap-2">
               {topThemes.map((theme, i) => (
                 <span 
                   key={i} 
@@ -215,6 +219,16 @@ export function EmotionalTrends({
                   {theme}
                 </span>
               ))}
+              </div>
+              <div className="h-6 flex items-center justify-end min-w-[120px] ml-4">
+                {hoveredDay && (
+                  <span className="text-xs font-semibold text-foreground/80 animate-in fade-in zoom-in duration-200">
+                    {hoveredDay.hasEntry 
+                      ? `${hoveredDay.sentiment || 'Unanalyzed'} ${getSentimentEmoji(hoveredDay.sentiment)}`
+                      : 'No entry'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

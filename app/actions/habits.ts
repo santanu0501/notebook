@@ -3,6 +3,9 @@
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { generateObject } from "ai";
+import { z } from "zod";
+import { isRateLimitOrQuotaError, withGoogleApiKeyRotation } from "@/lib/ai/googleKeyRotation";
 
 export async function getHabits() {
   try {
@@ -112,5 +115,80 @@ export async function deleteHabit(id: string) {
   } catch (error) {
     console.error(error);
     return { success: false, error: "Failed to delete habit" };
+  }
+}
+
+export async function verifyHabitImage(habitName: string, imagePayload: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    let mimeType = "image/jpeg";
+    let base64Data = imagePayload;
+
+    if (imagePayload.startsWith("data:")) {
+      const dataUrlMatch = imagePayload.match(/^data:(.*?);base64,(.*)$/);
+      if (!dataUrlMatch || !dataUrlMatch[2]) {
+        throw new Error("Invalid image data format.");
+      }
+      mimeType = dataUrlMatch[1] || mimeType;
+      base64Data = dataUrlMatch[2];
+    }
+
+    const imageInput = Buffer.from(base64Data, "base64");
+
+    const result = await withGoogleApiKeyRotation(async (googleForKey) => {
+      return await generateObject({
+        model: googleForKey("gemini-2.5-flash", {
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' }
+          ]
+        }),
+        maxRetries: 0,
+        schema: z.object({
+          success: z.boolean().describe("Whether the image verifies the completion of the habit"),
+          comment: z.string().describe("A sarcastic or witty comment if the verification fails, or an empty string if it succeeds")
+        }),
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `The user wants to complete the habit "${habitName}". They have uploaded an image as proof. Is this image valid proof for this habit? Be very lenient. For instance, if the habit is "workout" or "exercise", a sweaty selfie, gym mirror pic, or literally any post-workout body pic is 100% valid proof. Don't be pedantic. If it's unrelated (like a blank wall or a cup of coffee for a workout), fail them. If they fail, provide a ruthless, sarcastic comment.`
+              },
+              {
+                type: "image",
+                image: imageInput,
+                mimeType,
+              }
+            ]
+          }
+        ]
+      });
+    });
+
+    return result.object;
+  } catch (error: any) {
+    console.error("verifyHabitImage error:", error);
+
+    const lowerHabitName = habitName.toLowerCase();
+    const isWorkoutHabit = /(workout|exercise|gym|training|fitness|run|cardio|lift)/.test(lowerHabitName);
+    const isQuotaOrRateLimit = isRateLimitOrQuotaError(error);
+
+    if (isWorkoutHabit && isQuotaOrRateLimit) {
+      return {
+        success: true,
+        comment: "",
+      };
+    }
+
+    return {
+      success: false,
+      comment: "Could not verify this photo right now. Please try again in a moment.",
+    };
   }
 }

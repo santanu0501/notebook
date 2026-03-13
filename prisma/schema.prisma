@@ -16,6 +16,7 @@ model User {
   journals      JournalEntry[]
   tasks         Task[]
   habits        Habit[]
+  accountabilityMessages AccountabilityMessage[]
 }
 
 model JournalEntry {
@@ -44,9 +45,10 @@ model Habit {
   icon         String         @default("Activity")
   color        String         @default("blue")
   createdAt    DateTime       @default(now())
-  user         User           @relation(fields: [userId], references: [id])
+user         User           @relation(fields: [userId], references: [id])
   userId       String
   history      HabitHistory[]
+  accountabilityMessages AccountabilityMessage[]
 }
 
 model HabitHistory {
@@ -59,3 +61,15 @@ model HabitHistory {
 
   @@unique([habitId, date])
 }
+
+model AccountabilityMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitId   String?
+  habit     Habit?   @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+

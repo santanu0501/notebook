@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@clerk/nextjs";
+import { HabitVerificationModal } from "@/components/ui/HabitVerificationModal";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "#", action: "dashboard" },
@@ -24,6 +25,7 @@ export function SidebarNav() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [verificationHabit, setVerificationHabit] = useState<{ id: string, name: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -149,10 +151,14 @@ export function SidebarNav() {
                       id={`habit-${habit.id}`} 
                       checked={isCompleted}
                       onCheckedChange={async () => {
-                        toggleHabitToday(habit.id);
-                        const { toggleHabit } = await import("@/app/actions/habits");
-                        const d = new Date().toISOString().split("T")[0];
-                        await toggleHabit(habit.id, d, isCompleted);
+                        if (!isCompleted) {
+                          setVerificationHabit({ id: habit.id, name: habit.name });
+                        } else {
+                          toggleHabitToday(habit.id);
+                          const { toggleHabit } = await import("@/app/actions/habits");
+                          const d = new Date().toISOString().split("T")[0];
+                          await toggleHabit(habit.id, d, isCompleted);
+                        }
                       }}
                       className="w-4 h-4 flex-shrink-0"
                     />
@@ -206,6 +212,23 @@ export function SidebarNav() {
           </button>
         </SignOutButton>
       </div>
+
+      {verificationHabit && (
+        <HabitVerificationModal
+          isOpen={!!verificationHabit}
+          onOpenChange={(open) => {
+            if (!open) setVerificationHabit(null);
+          }}
+          habitName={verificationHabit.name}
+          onSuccess={async () => {
+            toggleHabitToday(verificationHabit.id);
+            const { toggleHabit } = await import("@/app/actions/habits");
+            const d = new Date().toISOString().split("T")[0];
+            await toggleHabit(verificationHabit.id, d, false);
+            setVerificationHabit(null);
+          }}
+        />
+      )}
 
       {/* Task Modal */}
       <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
